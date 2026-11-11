@@ -4,12 +4,26 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>一笔成画 · 流动形态</title>
+<meta name="author" content="YorayLin">
+<meta name="copyright" content="© 2026 YorayLin. All rights reserved.">
+<meta name="description" content="One Stroke — particle painting toy by YorayLin">
+<!--
+  © 2026 YorayLin (https://github.com/YorayLin)
+  本作品(含代码、形态算法、视觉设计)版权归 YorayLin 所有。
+  未经许可,不得去除署名信息或用于商业再发布。
+  Watermark-ID: YL-ONESTROKE-2026
+-->
 <style>
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{height:100%;margin:0;background:#07090c;color:#e9edf2;
     font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;overflow:hidden}
   #app{position:fixed;inset:0}
-  header{position:absolute;top:24px;left:32px;z-index:5;pointer-events:none}
+  header{position:absolute;top:56px;left:32px;z-index:5;pointer-events:none}
+  #langBtn{position:absolute;top:18px;left:28px;z-index:8;padding:5px 11px;border-radius:999px;
+    font-size:11px;letter-spacing:1.5px;background:rgba(18,22,28,.78);border:1px solid rgba(255,255,255,.12);
+    color:#9fb3c2;cursor:pointer;backdrop-filter:blur(10px);transition:.18s}
+  #langBtn:hover{color:#7dd3c0;border-color:rgba(125,211,192,.5)}
+  .wm-hidden{position:absolute;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none;user-select:none}
   h1{margin:0;font-size:21px;font-weight:600;letter-spacing:8px}
   h1 span{color:#7dd3c0}
   .sub{margin-top:6px;font-size:11.5px;color:#7b8794;letter-spacing:2.4px}
@@ -59,18 +73,24 @@
   #addColor{padding:5px 9px;font-size:11px;border-radius:8px;align-self:flex-start}
   #addColor:disabled{opacity:.35;cursor:not-allowed}
   @media (max-width:760px){
-    header{top:14px;left:16px}h1{font-size:16px;letter-spacing:4px}.sub{font-size:9.5px}
+    header{top:42px;left:16px}h1{font-size:16px;letter-spacing:4px}.sub{font-size:9.5px}
+    #langBtn{top:10px;left:14px;padding:4px 9px;font-size:10px}
     #styles{right:6px;gap:5px}.st{width:80px;padding:6px 8px}.st b{font-size:11px}.st i{display:none}
     #bar{bottom:10px;padding:6px;gap:5px}button{padding:7px 10px;font-size:11px}
-    #hint{bottom:70px;font-size:10.5px}#meta{display:none}
+    #tune{bottom:62px;left:10px;padding:7px 10px;gap:7px;font-size:10px}
+    #tune input[type=range]{width:84px}
+    #customPanel{bottom:112px;left:10px;padding:9px 10px;font-size:10.5px}
+    #hint{bottom:150px;font-size:10px;white-space:normal;width:88%;text-align:center}
+    #meta{display:none}
   }
 </style>
 </head>
 <body>
 <div id="app">
+  <button id="langBtn" aria-label="switch language">EN</button>
   <header>
-    <h1>一笔<span>成画</span></h1>
-    <div class="sub">ONE STROKE · LIVING FORMS</div>
+    <h1 id="title">一笔<span>成画</span></h1>
+    <div class="sub" id="sub">ONE STROKE · LIVING FORMS</div>
   </header>
   <div id="meta"></div>
   <div id="stage"><canvas id="c"></canvas></div>
@@ -83,23 +103,24 @@
   </div>
 
   <div id="tune">
-    <span class="tl">写实</span>
+    <span class="tl" id="tlReal">写实</span>
     <input id="strength" type="range" min="0" max="100" value="55" step="1">
-    <span class="tl">写意</span>
+    <span class="tl" id="tlExp">写意</span>
     <b id="sval">55</b>
   </div>
 
   <div id="customPanel" class="hidden">
     <div class="cp-row">
-      <span class="tl">背景</span>
+      <span class="tl" id="tlBg">背景</span>
       <input id="bgColor" type="color" value="#f7f2e8">
-      <span class="tl">笔触色</span>
+      <span class="tl" id="tlColors">笔触色</span>
       <b id="colorCount">4/6</b>
     </div>
     <div id="paletteRow"></div>
     <button id="addColor">＋ 加颜色</button>
   </div>
   <div id="toast"></div>
+  <div class="wm-hidden" id="wmOwner" aria-hidden="true">YorayLin · 一笔成画 · YL-ONESTROKE-2026</div>
 </div>
 
 <script>
@@ -148,6 +169,38 @@ const STYLES=[
 ];
 const byId=id=>STYLES.find(s=>s.id===id);
 let styleId="ink";
+
+/* ---------- 作者 / 多语言 ---------- */
+const AUTHOR="YorayLin";
+const I18N={
+  zh:{
+    titleA:"一笔", titleB:"成画",
+    sub:"ONE STROKE · LIVING FORMS",
+    hint:"画一笔 → 就地化形 · 可继续叠加 · 旧笔几秒后自动淡出",
+    demo:"看演示", save:"保存图片", clear:"清空",
+    real:"写实", exp:"写意", bg:"背景", colors:"笔触色",
+    addColor:"＋ 加颜色", delColor:"删除这个颜色",
+    saved:"已保存", saveFail:"保存失败", drawMore:"再多画一点",
+    none:"—", strokes:"笔", particles:"粒子", cover:"占屏", recent:"最近", realistic:"写实",
+    formed:"这一笔化为「{s}」"
+  },
+  en:{
+    titleA:"One", titleB:"Stroke",
+    sub:"一笔成画 · LIVING FORMS",
+    hint:"Draw a stroke → it becomes a form right where you drew · stack more · older strokes fade out",
+    demo:"Demo", save:"Save image", clear:"Clear",
+    real:"realistic", exp:"expressive", bg:"Background", colors:"Stroke colors",
+    addColor:"+ Color", delColor:"Delete this color",
+    saved:"Saved", saveFail:"Save failed", drawMore:"Draw a bit more",
+    none:"—", strokes:"strokes", particles:"particles", cover:"cover", recent:"last", realistic:"realistic",
+    formed:'This stroke became "{s}"'
+  }
+};
+let lang=(()=>{
+  try{const s=localStorage.getItem("os_lang");if(s==="zh"||s==="en")return s;}catch(e){}
+  return (navigator.language||"").toLowerCase().startsWith("zh")?"zh":"en";
+})();
+const t=k=>(I18N[lang][k]!==undefined?I18N[lang][k]:k);
 let shapeIndex=0;
 let seed=20261111;
 let strength=0.55;
@@ -163,8 +216,9 @@ let W=1000,H=640;
 
 function resize(){
   const vw=window.innerWidth, vh=window.innerHeight;
-  const padX=vw>900?120:20, padY=vw>900?106:82;
-  const ratio=1.55;
+  const mobile=vw<=760;
+  const padX=mobile?16:(vw>900?120:20), padY=mobile?96:(vw>900?106:82);
+  const ratio=mobile?clamp(vw/vh,0.62,1.35):1.55;
   let w=vw-padX*2, h=vh-padY*2;
   if(w/h>ratio) w=h*ratio; else h=w/ratio;
   W=Math.max(320,Math.round(w)); H=Math.max(210,Math.round(h));
@@ -188,6 +242,25 @@ function buildBackground(){
   bgx.setTransform(DPR,0,0,DPR,0,0);
   const f=BACKGROUNDS[byId(styleId).bg];
   f(bgx,W,H,rng);
+  drawWatermark(bgx,W,H);
+}
+
+/* 隐藏水印:几乎不可见,但会出现在截图/导出的 PNG 里,用于证明作者 */
+const WM_TEXT=AUTHOR+" · YL-ONESTROKE-2026";
+function drawWatermark(c,W,H){
+  const dark=["vg","neon","ukiyo"].includes(styleId);
+  c.save();
+  c.globalAlpha=dark?0.010:0.013;
+  c.fillStyle=dark?"#ffffff":"#1a1a1a";
+  c.font='600 34px "Helvetica Neue",Arial,sans-serif';
+  c.translate(W/2,H/2);
+  c.rotate(-0.36);
+  for(let y=-H;y<H;y+=170){
+    for(let x=-W;x<W;x+=330){
+      c.fillText(WM_TEXT,x,y);
+    }
+  }
+  c.restore();
 }
 
 const BACKGROUNDS={
@@ -740,6 +813,14 @@ const SHAPE_LABEL={
   koiSchool:"锦鲤群",butterfly:"蝴蝶",crane:"仙鹤",landscape:"山水",silhouette:"人影",
   bamboo:"竹",plum:"梅",boat:"小舟",pavilion:"亭",deer:"鹿",cat:"猫",clouds:"云",moon:"月"
 };
+const SHAPE_LABEL_EN={
+  birds:"Birds",mountain:"Mountain",fish:"Fish",galaxy:"Galaxy",swirl:"Swirl",
+  lotus:"Lotus",petals:"Petals",koi:"Koi",wave:"Wave",phoenix:"Phoenix",
+  dragon:"Dragon",tree:"Tree",balloon:"Balloon",flower:"Flower",bloom:"Bloom",
+  koiSchool:"Koi school",butterfly:"Butterfly",crane:"Crane",landscape:"Landscape",silhouette:"Silhouette",
+  bamboo:"Bamboo",plum:"Plum",boat:"Boat",pavilion:"Pavilion",deer:"Deer",cat:"Cat",clouds:"Clouds",moon:"Moon"
+};
+function shapeLabel(name){return (lang==="en"?SHAPE_LABEL_EN[name]:SHAPE_LABEL[name])||name;}
 
 function chooseShape(f,rng){
   const diag=Math.hypot(f.w,f.h);
@@ -821,7 +902,7 @@ function createGroup(points,forcedShape){
   lastGroup=g;
   while(groups.length>5) groups.shift();
   updateMeta();
-  toast(`这一笔化为「${SHAPE_LABEL[kind]||kind}」`);
+  toast(t("formed").replace("{s}",shapeLabel(kind)));
   return g;
 }
 
@@ -993,30 +1074,41 @@ function pos(e){
   const r=cv.getBoundingClientRect();
   return {x:(e.clientX-r.left)/r.width*W, y:(e.clientY-r.top)/r.height*H, t:performance.now()};
 }
+let activePointer=null;
 cv.addEventListener("pointerdown",e=>{
+  if(activePointer!==null) return;              // 多指触控只认第一根手指
+  activePointer=e.pointerId;
   clearDemoTimers();
-  drawing=true;stroke=[];cv.setPointerCapture(e.pointerId);
+  drawing=true;stroke=[];
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
   stroke.push(pos(e));
   document.getElementById("hint").style.opacity=.25;
-});
+  if(e.cancelable) e.preventDefault();
+},{passive:false});
 cv.addEventListener("pointermove",e=>{
+  if(e.pointerType!=="mouse" && !drawing) return;   // 触屏只在落笔时生效,避免误触起风
   const r=cv.getBoundingClientRect();
   pointer.x=(e.clientX-r.left)/r.width*W;
   pointer.y=(e.clientY-r.top)/r.height*H;
   pointer.active=true;
-  if(!drawing) return;
+  if(!drawing || e.pointerId!==activePointer) return;
   const p=pos(e), last=stroke[stroke.length-1];
   if(!last||Math.hypot(p.x-last.x,p.y-last.y)>1.5) stroke.push(p);
 });
-cv.addEventListener("pointerup",()=>{
+function endStroke(e){
   if(!drawing) return;
-  drawing=false;
+  drawing=false;activePointer=null;
+  if(e&&e.pointerType!=="mouse") pointer.active=false;
   if(stroke.length>2) createGroup(stroke.slice());
-  else toast("再多画一点");
+  else toast(t("drawMore"));
   stroke=[];
-});
-cv.addEventListener("pointercancel",()=>{drawing=false;stroke=[];});
+  try{if(e)cv.releasePointerCapture(e.pointerId);}catch(_){}
+}
+cv.addEventListener("pointerup",endStroke);
+cv.addEventListener("pointercancel",()=>{drawing=false;stroke=[];activePointer=null;pointer.active=false;});
 cv.addEventListener("pointerleave",()=>{pointer.active=false;});
+/* iOS:阻止双指缩放/页面滚动打断绘画 */
+cv.addEventListener("touchmove",e=>{if(e.cancelable)e.preventDefault();},{passive:false});
 
 /* ================= 演示:三笔三种形态 ================= */
 function demoStroke(kind){
@@ -1067,9 +1159,10 @@ function updateMeta(){
   const total=groups.reduce((a,g)=>a+g.particles.length,0);
   const area=groups.reduce((a,g)=>a+g.box.w*g.box.h,0);
   const cover=Math.round(Math.min(1,area/(W*H))*100);
-  const last=lastGroup?SHAPE_LABEL[lastGroup.shapeName]||lastGroup.shapeName:"—";
-  document.getElementById("meta").innerHTML=
-    `${W}×${H} · ${st.name} · ${groups.length} 笔 · ${total} 粒子 · 占屏 ${cover}% · 最近:${last} · 写实 ${Math.round(strength*100)}%`;
+  const last=lastGroup?shapeLabel(lastGroup.shapeName):t("none");
+  const stName=lang==="en"?st.en:st.name;
+  document.getElementById("meta").textContent=
+    `${W}×${H} · ${stName} · ${groups.length} ${t("strokes")} · ${total} ${t("particles")} · ${t("cover")} ${cover}% · ${t("recent")}:${last} · ${t("realistic")} ${Math.round(strength*100)}%`;
 }
 function toast(msg){
   const t=document.getElementById("toast");
@@ -1078,11 +1171,14 @@ function toast(msg){
 }
 function buildStyleUI(){
   const box=document.getElementById("styles");
+  box.innerHTML="";
   STYLES.forEach((s,i)=>{
     const el=document.createElement("div");
     el.className="st"+(s.id===styleId?" on":"");
     el.dataset.id=s.id;
-    el.innerHTML=`<b>${i+1}. ${s.name}</b><i>${s.en}</i>`;
+    const main=lang==="en"?s.en:s.name;
+    const sub=lang==="en"?s.name:s.en;
+    el.innerHTML=`<b>${i+1}. ${main}</b><i>${sub}</i>`;
     el.onclick=()=>switchStyle(s.id);
     box.appendChild(el);
   });
@@ -1102,6 +1198,30 @@ function syncUI(){
   document.querySelectorAll(".st").forEach(el=>el.classList.toggle("on",el.dataset.id===styleId));
   updateMeta();
 }
+function applyLang(){
+  document.documentElement.lang=lang==="en"?"en":"zh-CN";
+  document.title=lang==="en"?"One Stroke · Living Forms":"一笔成画 · 流动形态";
+  document.getElementById("title").innerHTML=lang==="en"?"One <span>Stroke</span>":"一笔<span>成画</span>";
+  document.getElementById("sub").textContent=t("sub");
+  document.getElementById("hint").textContent=t("hint");
+  document.getElementById("btnDemo").textContent=t("demo");
+  document.getElementById("btnSave").textContent=t("save");
+  document.getElementById("btnClear").textContent=t("clear");
+  document.getElementById("tlReal").textContent=t("real");
+  document.getElementById("tlExp").textContent=t("exp");
+  document.getElementById("tlBg").textContent=t("bg");
+  document.getElementById("tlColors").textContent=t("colors");
+  document.getElementById("addColor").textContent=t("addColor");
+  document.getElementById("langBtn").textContent=lang==="en"?"中文":"EN";
+  buildStyleUI();
+  syncUI();
+  renderPalette();
+}
+document.getElementById("langBtn").onclick=()=>{
+  lang=lang==="zh"?"en":"zh";
+  try{localStorage.setItem("os_lang",lang);}catch(e){}
+  applyLang();
+};
 
 document.getElementById("btnDemo").onclick=()=>runDemo();
 
@@ -1123,7 +1243,7 @@ function renderPalette(){
     });
     const del=document.createElement("span");
     del.className="del";del.textContent="×";
-    del.title="删除这个颜色";
+    del.title=t("delColor");
     del.addEventListener("click",(e)=>{
       e.preventDefault();e.stopPropagation();
       if(customPalette.length<=1) return;
@@ -1149,12 +1269,72 @@ document.getElementById("addColor").addEventListener("click",()=>{
 ensureCustomPalette();
 renderPalette();
 document.getElementById("bgColor").value=customBgColor;
+
+/* ---------- PNG 元数据水印(把作者写进文件里) ---------- */
+const CRC_TABLE=(()=>{
+  const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}
+  return t;
+})();
+function crc32(buf){
+  let c=0xFFFFFFFF;
+  for(let i=0;i<buf.length;i++) c=CRC_TABLE[(c^buf[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function pngTextChunk(key,val){
+  const enc=new TextEncoder();
+  const data=new Uint8Array(enc.encode(key).length+1+enc.encode(val).length);
+  data.set(enc.encode(key),0); data[enc.encode(key).length]=0;
+  data.set(enc.encode(val),enc.encode(key).length+1);
+  const out=new Uint8Array(12+data.length);
+  const dv=new DataView(out.buffer);
+  dv.setUint32(0,data.length);
+  out.set(enc.encode("tEXt"),4);
+  out.set(data,8);
+  dv.setUint32(8+data.length,crc32(out.subarray(4,8+data.length)));
+  return out;
+}
+function findIEND(bytes){
+  for(let i=8;i<bytes.length-8;){
+    const len=((bytes[i]<<24)|(bytes[i+1]<<16)|(bytes[i+2]<<8)|bytes[i+3])>>>0;
+    const type=String.fromCharCode(bytes[i+4],bytes[i+5],bytes[i+6],bytes[i+7]);
+    if(type==="IEND") return i;
+    if(len>bytes.length) return -1;
+    i+=12+len;
+  }
+  return -1;
+}
+function withPngMeta(dataURL,entries){
+  const bin=atob(dataURL.split(",")[1]);
+  const bytes=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+  const iend=findIEND(bytes);
+  if(iend<0) return dataURL;
+  const chunks=entries.map(([k,v])=>pngTextChunk(k,v));
+  const total=chunks.reduce((a,c)=>a+c.length,0);
+  const out=new Uint8Array(bytes.length+total);
+  out.set(bytes.subarray(0,iend),0);
+  let off=iend;
+  for(const c of chunks){out.set(c,off);off+=c.length;}
+  out.set(bytes.subarray(iend),off);
+  let s="";
+  for(let i=0;i<out.length;i+=8192) s+=String.fromCharCode.apply(null,out.subarray(i,i+8192));
+  return "data:image/png;base64,"+btoa(s);
+}
 document.getElementById("btnSave").onclick=()=>{
   try{
+    const st=byId(styleId);
+    const name=lang==="en"?st.en:st.name;
     const a=document.createElement("a");
-    a.download=`一笔成画-${byId(styleId).name}-${Date.now()}.png`;
-    a.href=cv.toDataURL("image/png");a.click();toast("已保存");
-  }catch(e){toast("保存失败");}
+    a.download=`一笔成画-YorayLin-${name}-${Date.now()}.png`;
+    const png=withPngMeta(cv.toDataURL("image/png"),[
+      ["Author",AUTHOR],
+      ["Copyright","(c) 2026 YorayLin. All rights reserved."],
+      ["Software","One Stroke by YorayLin"],
+      ["Comment","YL-ONESTROKE-2026 · https://github.com/YorayLin"]
+    ]);
+    a.href=png;a.click();toast(t("saved"));
+  }catch(e){toast(t("saveFail"));}
 };
 document.getElementById("btnClear").onclick=()=>{clearDemoTimers();groups.length=0;lastGroup=null;clearFx();updateMeta();document.getElementById("hint").style.opacity=.3;};
 
@@ -1217,9 +1397,29 @@ window.__status=()=>{
   };
 };
 window.__advance=(sec)=>{ drawFrame(performance.now()/1000+(sec||0)); return window.__status(); };
+/* 测试钩子:导出带元数据的 PNG / 生成加水印的对比增强图 */
+window.__wmTest=()=>{
+  const d=withPngMeta(cv.toDataURL("image/png"),[["Author",AUTHOR]]);
+  const b=atob(d.split(",")[1]);
+  return {hasText:b.includes("tEXt"),hasAuthor:b.includes("YorayLin"),bytes:b.length,dataURL:d};
+};
+window.__wmProof=()=>{
+  const t=document.createElement("canvas");
+  t.width=560;t.height=320;
+  const tc=t.getContext("2d");
+  tc.drawImage(bgc,Math.round(W*0.12),Math.round(H*0.18),560,320,0,0,560,320);
+  const img=tc.getImageData(0,0,560,320),d=img.data;
+  for(let i=0;i<d.length;i+=4){
+    const lum=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114);
+    const v=Math.max(0,Math.min(255,128+(lum-244)*42));
+    d[i]=d[i+1]=d[i+2]=v;
+  }
+  tc.putImageData(img,0,0);
+  return t.toDataURL("image/png");
+};
 
 /* 启动 */
-buildStyleUI();
+applyLang();
 resize();
 syncUI();
 demoTimers.push(setTimeout(runDemo,700));
