@@ -248,7 +248,13 @@ function buildBackground(){
 /* 隐藏水印:几乎不可见,但会出现在截图/导出的 PNG 里,用于证明作者 */
 const WM_TEXT=AUTHOR+" · YL-ONESTROKE-2026";
 function drawWatermark(c,W,H){
-  const dark=["vg","neon","ukiyo"].includes(styleId);
+  const hexLum=h=>{
+    const m=/^#?([0-9a-f]{6})$/i.exec(h||"");
+    if(!m) return 1;
+    const n=parseInt(m[1],16);
+    return (0.299*(n>>16&255)+0.587*(n>>8&255)+0.114*(n&255))/255;
+  };
+  const dark=["vg","neon","ukiyo"].includes(styleId) || (styleId==="custom"&&hexLum(customBgColor)<0.5);
   c.save();
   c.globalAlpha=dark?0.010:0.013;
   c.fillStyle=dark?"#ffffff":"#1a1a1a";
