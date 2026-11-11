@@ -2,6 +2,8 @@
 
 > 画一笔,它会散成粒子、流动、聚成一个形态;再画一笔,画面继续叠加。八种画风,二十多种形态,单文件离线运行。
 
+**在线试玩** → https://yoraylink.github.io/one-stroke-art/
+
 ![preview](preview/multi.png)
 
 ## 特性
